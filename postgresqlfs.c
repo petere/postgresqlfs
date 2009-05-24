@@ -117,6 +117,52 @@ postgresqlfs_getattr(const char *path, struct stat *buf)
 
 
 static int
+postgresqlfs_mkdir(const char *path, mode_t mode)
+{
+	struct dbpath dbpath;
+
+	split_path(path, &dbpath);
+
+	// TODO: use mode sensibly
+
+	if (dbpath_is_root(dbpath))
+		return -EEXIST;
+	else if (dbpath_is_database(dbpath))
+		return -ENOSYS;
+	else if (dbpath_is_schema(dbpath))
+		return db_command(dbconn, "CREATE SCHEMA %s;", dbpath.schema);
+	else if (dbpath_is_table(dbpath))
+		return -ENOSYS; /* XXX create zero column table? */
+	else if (dbpath_is_row(dbpath))
+		return -ENOSYS; /* XXX translate to INSERT with primary key and default values? */
+	else
+		return -EINVAL; /* column is a file, not directory, XXX maybe ENOTDIR */
+}
+
+
+static int
+postgresqlfs_rmdir(const char *path)
+{
+	struct dbpath dbpath;
+
+	split_path(path, &dbpath);
+
+	if (dbpath_is_root(dbpath))
+		return -EBUSY;
+	else if (dbpath_is_database(dbpath))
+		return -ENOTEMPTY;
+	else if (dbpath_is_schema(dbpath))
+		return db_command(dbconn, "DROP SCHEMA %s;", dbpath.schema);
+	else if (dbpath_is_table(dbpath))
+		return -ENOSYS; /* TODO: drop table if it has zero columns */
+	else if (dbpath_is_row(dbpath))
+		return -ENOSYS; /* TODO: delete based on ctid */
+	else
+		return -ENOTDIR;
+}
+
+
+static int
 postgresqlfs_rename(const char *oldpath, const char *newpath)
 {
 	struct dbpath olddbpath, newdbpath;
@@ -346,9 +392,9 @@ postgresqlfs_readdir(const char * path, void *buf, fuse_fill_dir_t filler, off_t
 
 static struct fuse_operations postgresqlfs_ops = {
 	.getattr = postgresqlfs_getattr,
-	.mkdir = NULL,			// TODO
+	.mkdir = postgresqlfs_mkdir,
 	.unlink = NULL,			// TODO
-	.rmdir = NULL,			// TODO
+	.rmdir = postgresqlfs_rmdir,
 	.rename = postgresqlfs_rename,
 	.chmod = NULL,			// TODO
 	.chown = NULL,			// TODO
