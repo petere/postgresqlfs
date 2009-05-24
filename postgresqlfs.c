@@ -393,7 +393,7 @@ postgresqlfs_readdir(const char * path, void *buf, fuse_fill_dir_t filler, off_t
 static struct fuse_operations postgresqlfs_ops = {
 	.getattr = postgresqlfs_getattr,
 	.mkdir = postgresqlfs_mkdir,
-	.unlink = NULL,			// TODO
+	.unlink = NULL,			/* not planned/useful to implement this */
 	.rmdir = postgresqlfs_rmdir,
 	.rename = postgresqlfs_rename,
 	.chmod = NULL,			// TODO
