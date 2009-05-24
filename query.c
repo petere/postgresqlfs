@@ -4,6 +4,7 @@
 #include "query.h"
 #include "path.h"
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,42 @@ db_query(PGconn *dbconn, const char *stmt, ...)
 
 	va_start(ap, stmt);
 	res = db_query_v(dbconn, stmt, ap);
+	va_end(ap);
+
+	return res;
+}
+
+
+int
+db_command_v(PGconn *dbconn, const char *stmt, va_list ap)
+{
+	PGresult *res;
+	char *buf;
+
+	vasprintf(&buf, stmt, ap);
+
+	res = PQexec(dbconn, buf);
+	free(buf);
+	// TODO: communicate the SQLSTATE via some global variable back to errno
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+	{
+		debug("command status was %s", PQresStatus(PQresultStatus(res)));
+		PQclear(res);
+		return -EIO;
+	}
+
+	return 0;
+}
+
+
+int
+db_command(PGconn *dbconn, const char *stmt, ...)
+{
+	int res;
+	va_list ap;
+
+	va_start(ap, stmt);
+	res = db_command_v(dbconn, stmt, ap);
 	va_end(ap);
 
 	return res;

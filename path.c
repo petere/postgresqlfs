@@ -118,3 +118,15 @@ dbpath_to_string(const struct dbpath *in)
 
 	return out;
 }
+
+
+bool
+dbpaths_are_same_level(struct dbpath *path1, struct dbpath *path2)
+{
+  return ((dbpath_is_root(*path1) && dbpath_is_root(*path2))
+	  || (dbpath_is_database(*path1) && dbpath_is_database(*path2))
+	  || (dbpath_is_schema(*path1) && dbpath_is_schema(*path2))
+	  || (dbpath_is_table(*path1) && dbpath_is_table(*path2))
+	  || (dbpath_is_row(*path1) && dbpath_is_row(*path2))
+	  || (dbpath_is_column(*path1) && dbpath_is_column(*path2)));
+}

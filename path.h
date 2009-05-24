@@ -2,6 +2,7 @@
 #define PATH_H
 
 #include <limits.h>
+#include <stdbool.h>
 
 struct dbpath {
 	char database[PATH_MAX];
@@ -23,5 +24,6 @@ struct dbpath {
 
 extern int split_path(const char *in, struct dbpath *out);
 extern const char *dbpath_to_string(const struct dbpath *in);
+extern bool dbpaths_are_same_level(struct dbpath *path1, struct dbpath *path2);
 
 #endif /* PATH_H */

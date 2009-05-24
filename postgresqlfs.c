@@ -117,6 +117,78 @@ postgresqlfs_getattr(const char *path, struct stat *buf)
 
 
 static int
+postgresqlfs_rename(const char *oldpath, const char *newpath)
+{
+	struct dbpath olddbpath, newdbpath;
+
+	split_path(oldpath, &olddbpath);
+	split_path(newpath, &newdbpath);
+
+	if (!dbpaths_are_same_level(&olddbpath, &newdbpath))
+		return -EINVAL; // XXX maybe EXDEV?
+
+	if (dbpath_is_root(olddbpath))
+		return -EINVAL;
+	else if (dbpath_is_database(olddbpath))
+	{
+#ifdef BROKEN
+		// FIXME tries to connect to new database before it exists !?!
+		// XXX check whether paths exist; clearer error codes
+		return db_command(dbconn,
+						  "ALTER DATABASE %s RENAME TO %s;",
+						  olddbpath.database, newdbpath.database);
+#endif
+		return -EINVAL;
+	}
+	else if (dbpath_is_schema(olddbpath))
+	{
+		/* moving a schema to a different database is not possible */
+		if (strcmp(olddbpath.database, newdbpath.database) != 0)
+			return -EINVAL;
+
+		return db_command(dbconn,
+						  "ALTER SCHEMA %s RENAME TO %s;",
+						  olddbpath.schema, newdbpath.schema);
+	}
+	else if (dbpath_is_table(olddbpath))
+	{
+		/* moving a table to a different database is not possible */
+		if (strcmp(olddbpath.database, newdbpath.database) != 0)
+			return -EINVAL;
+
+		if (strcmp(olddbpath.schema, newdbpath.schema) != 0)
+			return -EINVAL; // XXX for the time being
+
+		return db_command(dbconn,
+						  "ALTER TABLE %s.%s RENAME TO %s;",
+						  olddbpath.schema, olddbpath.table, newdbpath.table);
+	}
+	else if (dbpath_is_row(olddbpath))
+		return -EINVAL; // XXX right code?
+	else if (dbpath_is_column(olddbpath))
+	{
+		/* renaming a column to reappear in a different table doesn't make sense */
+		if (strcmp(olddbpath.database, newdbpath.database) != 0
+			|| strcmp(olddbpath.schema, newdbpath.schema) != 0
+			|| strcmp(olddbpath.table, newdbpath.table) != 0
+			|| strcmp(olddbpath.row, newdbpath.row) != 0)
+			return -EINVAL;
+
+		/* column number must stay the same (could be changed if
+		 * PotgreSQL supported reordering) */
+		if (strncmp(olddbpath.column, newdbpath.column, 3) != 0)
+			return -EINVAL;
+
+		return db_command(dbconn,
+						  "ALTER TABLE %s.%s RENAME COLUMN %s TO %s;",
+						  olddbpath.schema, olddbpath.table, olddbpath.column + 3, newdbpath.column + 3);
+	}
+
+	return -EINVAL;
+}
+
+
+static int
 postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 				  struct fuse_file_info *fi)
 {
@@ -277,7 +349,7 @@ static struct fuse_operations postgresqlfs_ops = {
 	.mkdir = NULL,			// TODO
 	.unlink = NULL,			// TODO
 	.rmdir = NULL,			// TODO
-	.rename = NULL,			// TODO
+	.rename = postgresqlfs_rename,
 	.chmod = NULL,			// TODO
 	.chown = NULL,			// TODO
 	.truncate = NULL,		// TODO
