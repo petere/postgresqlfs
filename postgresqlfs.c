@@ -4,7 +4,6 @@
 #include "strlcpy.h"
 
 #include <errno.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -117,7 +116,7 @@ postgresqlfs_getattr(const char *path, struct stat *buf)
 
 
 static int
-postgresqlfs_mkdir(const char *path, mode_t mode)
+postgresqlfs_mkdir(const char *path, mode_t mode __attribute__((unused)))
 {
 	struct dbpath dbpath;
 
@@ -253,7 +252,7 @@ postgresqlfs_chmod(const char *path, mode_t mode)
 
 static int
 postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
-				  struct fuse_file_info *fi)
+				  struct fuse_file_info *fi __attribute__((unused)))
 {
 	struct dbpath dbpath;
 
@@ -268,13 +267,12 @@ postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 	if (dbpath_is_column(dbpath))
 	{
 		PGresult *res;
-		char qry[PATH_MAX];
 		size_t len;
 		const char *val;
 
-		snprintf(qry, PATH_MAX, "SELECT substring(CAST(%s AS text) FROM %lld FOR %zu) FROM %s.%s WHERE ctid = '%s';",
-				 dbpath.column + 3, offset + 1, size, dbpath.schema, dbpath.table, rowname_to_ctid(dbpath.row));
-		res = db_query(dbconn, qry);
+		res = db_query(dbconn,
+					   "SELECT substring(CAST(%s AS text) FROM %lld FOR %zu) FROM %s.%s WHERE ctid = '%s';",
+					   dbpath.column + 3, offset + 1, size, dbpath.schema, dbpath.table, rowname_to_ctid(dbpath.row));
 		if (!res)
 			return -EIO;
 
@@ -295,7 +293,7 @@ postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 
 static int
 postgresqlfs_write(const char *path, const char *buf, size_t size, off_t offset,
-				   struct fuse_file_info *fi)
+				   struct fuse_file_info *fi __attribute__((unused)))
 {
 	struct dbpath dbpath;
 
@@ -310,11 +308,12 @@ postgresqlfs_write(const char *path, const char *buf, size_t size, off_t offset,
 	if (dbpath_is_column(dbpath))
 	{
 		int res;
-		char qry[PATH_MAX];
 
-		snprintf(qry, PATH_MAX, "UPDATE %s.%s SET %s = overlay(CAST(%s AS text) PLACING '%s' FROM %lld FOR %zu) WHERE ctid = '%s';",
-				 dbpath.schema, dbpath.table, dbpath.column + 3, dbpath.column + 3, buf, offset + 1, size, rowname_to_ctid(dbpath.row));
-		res = db_command(dbconn, qry);
+		res = db_command(dbconn,
+						 "UPDATE %s.%s SET %s = overlay(CAST(%s AS text) PLACING '%s' FROM %lld FOR %zu) WHERE ctid = '%s';",
+						 dbpath.schema, dbpath.table,
+						 dbpath.column + 3, dbpath.column + 3, buf, offset + 1, size,
+						 rowname_to_ctid(dbpath.row));
 		if (!res)
 			return res;
 		return size;
@@ -325,8 +324,9 @@ postgresqlfs_write(const char *path, const char *buf, size_t size, off_t offset,
 
 
 static int
-postgresqlfs_readdir(const char * path, void *buf, fuse_fill_dir_t filler, off_t offset,
-					 struct fuse_file_info *fi)
+postgresqlfs_readdir(const char * path, void *buf, fuse_fill_dir_t filler,
+					 off_t offset __attribute__((unused)),
+					 struct fuse_file_info *fi __attribute__((unused)))
 {
 	struct dbpath dbpath;
 

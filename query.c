@@ -13,7 +13,7 @@
 #include <libpq-fe.h>
 
 
-PGresult *
+static PGresult *
 db_query_v(PGconn *dbconn, const char *stmt, va_list ap)
 {
 	PGresult *res;
@@ -48,7 +48,7 @@ db_query(PGconn *dbconn, const char *stmt, ...)
 }
 
 
-int
+static int
 db_command_v(PGconn *dbconn, const char *stmt, va_list ap)
 {
 	PGresult *res;
