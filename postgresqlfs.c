@@ -140,7 +140,7 @@ postgresqlfs_mkdir(const char *path, mode_t mode __attribute__((unused)))
 		else if (dbpath_is_row(dbpath))
 			return -ENOSYS; /* maybe: translate to INSERT with primary key and default values? */
 		else
-			return -EINVAL; /* column is a file, not directory, XXX maybe ENOTDIR */
+			return -ENOENT;
 	}
 }
 
