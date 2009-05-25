@@ -70,7 +70,7 @@ postgresqlfs_getattr(const char *path, struct stat *buf)
 
 	debug("%s", dbpath_to_string(&dbpath));
 
-	if (!switch_database(&dbpath))
+	if (!dbpath_is_database(dbpath) && !switch_database(&dbpath))
 		return -EIO;
 
 	if (!dbpath_exists(&dbpath, dbconn))
@@ -128,15 +128,21 @@ postgresqlfs_mkdir(const char *path, mode_t mode)
 	if (dbpath_is_root(dbpath))
 		return -EEXIST;
 	else if (dbpath_is_database(dbpath))
-		return -ENOSYS;
-	else if (dbpath_is_schema(dbpath))
-		return db_command(dbconn, "CREATE SCHEMA %s;", dbpath.schema);
-	else if (dbpath_is_table(dbpath))
-		return -ENOSYS; /* XXX create zero column table? */
-	else if (dbpath_is_row(dbpath))
-		return -ENOSYS; /* XXX translate to INSERT with primary key and default values? */
-	else
-		return -EINVAL; /* column is a file, not directory, XXX maybe ENOTDIR */
+		return db_command(dbconn, "CREATE DATABASE %s;", dbpath.database);
+	else {
+		/* Note: Don't switch the database when creating a database. */
+		if (!switch_database(&dbpath))
+			return -EIO;
+
+		if (dbpath_is_schema(dbpath))
+			return db_command(dbconn, "CREATE SCHEMA %s;", dbpath.schema);
+		else if (dbpath_is_table(dbpath))
+			return -ENOSYS; /* maybe: create zero column table */
+		else if (dbpath_is_row(dbpath))
+			return -ENOSYS; /* maybe: translate to INSERT with primary key and default values? */
+		else
+			return -EINVAL; /* column is a file, not directory, XXX maybe ENOTDIR */
+	}
 }
 
 
@@ -147,6 +153,9 @@ postgresqlfs_rmdir(const char *path)
 
 	split_path(path, &dbpath);
 
+	if (!switch_database(&dbpath))
+		return -EIO;
+
 	if (dbpath_is_root(dbpath))
 		return -EBUSY;
 	else if (dbpath_is_database(dbpath))
@@ -154,9 +163,9 @@ postgresqlfs_rmdir(const char *path)
 	else if (dbpath_is_schema(dbpath))
 		return db_command(dbconn, "DROP SCHEMA %s;", dbpath.schema);
 	else if (dbpath_is_table(dbpath))
-		return -ENOSYS; /* TODO: drop table if it has zero columns */
+		return -ENOSYS; /* maybe: drop table if it has zero columns */
 	else if (dbpath_is_row(dbpath))
-		return -ENOSYS; /* TODO: delete based on ctid */
+		return -ENOSYS; /* maybe: remove row by ctid if table has zero columns */
 	else
 		return -ENOTDIR;
 }
