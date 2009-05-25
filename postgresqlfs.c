@@ -235,6 +235,14 @@ postgresqlfs_rename(const char *oldpath, const char *newpath)
 
 
 static int
+postgresqlfs_chmod(const char *path, mode_t mode)
+{
+	debug("chmod %s %u", path, mode);
+	return -ENOSYS;
+}
+
+
+static int
 postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 				  struct fuse_file_info *fi)
 {
@@ -270,6 +278,37 @@ postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 		PQclear(res);
 
 		return len;
+	}
+	else
+		return -EISDIR;
+}
+
+
+static int
+postgresqlfs_write(const char *path, const char *buf, size_t size, off_t offset,
+				   struct fuse_file_info *fi)
+{
+	struct dbpath dbpath;
+
+	split_path(path, &dbpath);
+
+	if (!switch_database(&dbpath))
+		return -EIO;
+
+	if (!dbpath_exists(&dbpath, dbconn))
+		return -ENOENT;
+
+	if (dbpath_is_column(dbpath))
+	{
+		int res;
+		char qry[PATH_MAX];
+
+		snprintf(qry, PATH_MAX, "UPDATE %s.%s SET %s = overlay(CAST(%s AS text) PLACING '%s' FROM %lld FOR %zu) WHERE ctid = '%s';",
+				 dbpath.schema, dbpath.table, dbpath.column + 3, dbpath.column + 3, buf, offset + 1, size, rowname_to_ctid(dbpath.row));
+		res = db_command(dbconn, qry);
+		if (!res)
+			return res;
+		return size;
 	}
 	else
 		return -EISDIR;
@@ -396,11 +435,11 @@ static struct fuse_operations postgresqlfs_ops = {
 	.unlink = NULL,			/* not planned/useful to implement this */
 	.rmdir = postgresqlfs_rmdir,
 	.rename = postgresqlfs_rename,
-	.chmod = NULL,			// TODO
+	.chmod = postgresqlfs_chmod,
 	.chown = NULL,			// TODO
 	.truncate = NULL,		// TODO
 	.read = postgresqlfs_read,
-	.write = NULL,			// TODO
+	.write = postgresqlfs_write,
 	.readdir = postgresqlfs_readdir
 };
 
