@@ -146,6 +146,20 @@ postgresqlfs_mkdir(const char *path, mode_t mode __attribute__((unused)))
 
 
 static int
+postgresqlfs_unlink(const char *path)
+{
+	struct dbpath dbpath;
+
+	split_path(path, &dbpath);
+
+	if (dbpath_is_column(dbpath))
+		return -EPERM;
+	else
+		return -EISDIR;
+}
+
+
+static int
 postgresqlfs_rmdir(const char *path)
 {
 	struct dbpath dbpath;
@@ -185,14 +199,10 @@ postgresqlfs_rename(const char *oldpath, const char *newpath)
 		return -EINVAL;
 	else if (dbpath_is_database(olddbpath))
 	{
-#ifdef BROKEN
-		// FIXME tries to connect to new database before it exists !?!
 		// XXX check whether paths exist; clearer error codes
 		return db_command(dbconn,
 						  "ALTER DATABASE %s RENAME TO %s;",
 						  olddbpath.database, newdbpath.database);
-#endif
-		return -EINVAL;
 	}
 	else if (dbpath_is_schema(olddbpath))
 	{
@@ -441,7 +451,7 @@ postgresqlfs_readdir(const char * path, void *buf, fuse_fill_dir_t filler,
 static struct fuse_operations postgresqlfs_ops = {
 	.getattr = postgresqlfs_getattr,
 	.mkdir = postgresqlfs_mkdir,
-	.unlink = NULL,			/* not planned/useful to implement this */
+	.unlink = postgresqlfs_unlink,
 	.rmdir = postgresqlfs_rmdir,
 	.rename = postgresqlfs_rename,
 	.chmod = postgresqlfs_chmod,
