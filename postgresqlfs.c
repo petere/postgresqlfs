@@ -152,10 +152,7 @@ postgresqlfs_unlink(const char *path)
 
 	split_path(path, &dbpath);
 
-	if (dbpath_is_column(dbpath))
-		return -EPERM;
-	else
-		return -EISDIR;
+	return -EPERM;
 }
 
 
@@ -193,7 +190,7 @@ postgresqlfs_rename(const char *oldpath, const char *newpath)
 	split_path(newpath, &newdbpath);
 
 	if (!dbpaths_are_same_level(&olddbpath, &newdbpath))
-		return -EINVAL; // XXX maybe EXDEV?
+		return -EXDEV;
 
 	if (dbpath_is_root(olddbpath))
 		return -EINVAL;
@@ -208,7 +205,7 @@ postgresqlfs_rename(const char *oldpath, const char *newpath)
 	{
 		/* moving a schema to a different database is not possible */
 		if (strcmp(olddbpath.database, newdbpath.database) != 0)
-			return -EINVAL;
+			return -EXDEV;
 
 		return db_command(dbconn,
 						  "ALTER SCHEMA %s RENAME TO %s;",
@@ -218,10 +215,10 @@ postgresqlfs_rename(const char *oldpath, const char *newpath)
 	{
 		/* moving a table to a different database is not possible */
 		if (strcmp(olddbpath.database, newdbpath.database) != 0)
-			return -EINVAL;
+			return -EXDEV;
 
 		if (strcmp(olddbpath.schema, newdbpath.schema) != 0)
-			return -EINVAL; // XXX for the time being
+			return -ENOSYS; // XXX for the time being
 
 		return db_command(dbconn,
 						  "ALTER TABLE %s.%s RENAME TO %s;",
