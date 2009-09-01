@@ -12,3 +12,6 @@ postgresqlfs: $(OBJS)
 
 clean:
 	rm -f $(OBJS) postgresqlfs
+
+check:
+	$(MAKE) -C tests $@

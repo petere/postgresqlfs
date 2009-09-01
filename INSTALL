@@ -3,3 +3,7 @@ On Debian, you need (at least) the following packages to build this software:
 libfuse-dev
 libpq-dev
 pkg-config
+
+To run the test suite (make check), you need
+
+libtest-harness-perl (TAP::Harness)
