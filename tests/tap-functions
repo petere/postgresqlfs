@@ -1,5 +1,6 @@
 #!/bin/bash 
 # http://testanything.org/wiki/index.php/Tap-functions
+# License: GPL
 
 
 _version='1.01'
