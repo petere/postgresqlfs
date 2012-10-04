@@ -1,0 +1,3 @@
+language: c
+install: sudo apt-get install -qq libfuse-dev libpq-dev
+script: make && make check
