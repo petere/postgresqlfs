@@ -470,7 +470,7 @@ main(int argc, char *argv[])
 	dbconn = PQsetdbLogin(NULL, NULL, NULL, NULL, "postgres", NULL, NULL);
 	if (PQstatus(dbconn) != CONNECTION_OK)
 	{
-		debug("connection bad");
+		debug("connection bad: %s", PQerrorMessage(dbconn));
 		return 1;
 	}
 
