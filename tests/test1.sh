@@ -24,8 +24,10 @@ setup() {
 }
 
 cleanup() {
-    if [ -d mnt ]; then
+    if mount -t fuse.postgresqlfs | grep -q $PWD/mnt; then
 	fusermount -q -u mnt
+    fi
+    if [ -d mnt ]; then
 	rmdir mnt
     fi
     export PGOPTIONS='--client-min-messages=warning'
