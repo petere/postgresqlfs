@@ -17,7 +17,6 @@ notokx() {
 setup() {
     export PGOPTIONS='--client-min-messages=warning'
     psql -d postgres -c 'CREATE DATABASE postgresqlfs_test'
-    createlang plpgsql postgresqlfs_test
     psql -d postgresqlfs_test -f testdata.sql
     mkdir mnt
     ../postgresqlfs mnt
