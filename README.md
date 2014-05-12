@@ -24,5 +24,4 @@ You also need access to the `/dev/fuse` device, which may be tied to
 some group membership on your operating system.
 
 
-Peter Eisentraut
-<peter_e@gmx.net>
+Peter Eisentraut <peter@eisentraut.org>
