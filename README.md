@@ -10,17 +10,17 @@ The idea is that you can use this together with Midnight Commander to
 browse and edit a database in text mode in situations where psql would
 be to cumbersome but pgAdmin or phpPgAdmin are not available.
 
-Use postgresqlfs --help to get usage information.  Usually, it is just
+Use `postgresqlfs --help` to get usage information.  Usually, it is just
 
-$ postgresqlfs mountpoint
+    $ postgresqlfs mountpoint
 
 to mount, and
 
-$ fusermount -u mountpoint
+    $ fusermount -u mountpoint
 
 to unmount.
 
-You also need access to the /dev/fuse device, which may be tied to
+You also need access to the `/dev/fuse` device, which may be tied to
 some group membership on your operating system.
 
 
