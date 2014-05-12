@@ -278,20 +278,20 @@ postgresqlfs_read(const char *path, char *buf, size_t size, off_t offset,
 		const char *val;
 
 		res = db_query(dbconn,
-					   "SELECT substring(CAST(%s AS text) FROM %lld FOR %zu) FROM %s.%s WHERE ctid = '%s';",
-					   dbpath.column + 3, offset + 1, size, dbpath.schema, dbpath.table, rowname_to_ctid(dbpath.row));
+					   "SELECT substring(CAST(%s AS text) FROM %jd FOR %zu) FROM %s.%s WHERE ctid = '%s';",
+					   dbpath.column + 3, (intmax_t) (offset + 1), size, dbpath.schema, dbpath.table, rowname_to_ctid(dbpath.row));
 		if (!res)
 			return -EIO;
 
 		val = PQgetvalue(res, 0, 0);
 		len = strlen(val);
 
-		debug("value \"%s\" len=%d", val, len);
+		debug("value \"%s\" len=%zu", val, len);
 		memcpy(buf, val, len);
 
 		PQclear(res);
 
-		return len;
+		return (int) len;
 	}
 	else
 		return -EISDIR;
@@ -317,13 +317,13 @@ postgresqlfs_write(const char *path, const char *buf, size_t size, off_t offset,
 		int res;
 
 		res = db_command(dbconn,
-						 "UPDATE %s.%s SET %s = overlay(CAST(%s AS text) PLACING '%s' FROM %lld FOR %zu) WHERE ctid = '%s';",
+						 "UPDATE %s.%s SET %s = overlay(CAST(%s AS text) PLACING '%s' FROM %jd FOR %zu) WHERE ctid = '%s';",
 						 dbpath.schema, dbpath.table,
-						 dbpath.column + 3, dbpath.column + 3, buf, offset + 1, size,
+						 dbpath.column + 3, dbpath.column + 3, buf, (intmax_t) (offset + 1), size,
 						 rowname_to_ctid(dbpath.row));
 		if (!res)
 			return res;
-		return size;
+		return (int) size;
 	}
 	else
 		return -EISDIR;
