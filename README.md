@@ -23,6 +23,6 @@ to unmount.
 You also need access to the `/dev/fuse` device, which may be tied to
 some group membership on your operating system.
 
-[![Build Status](https://secure.travis-ci.org/petere/postgresqlfs.png)](http://travis-ci.org/petere/postgresqlfs)
+[![Build Status](https://travis-ci.org/petere/postgresqlfs.svg?branch=master)](https://travis-ci.org/petere/postgresqlfs)
 
 Peter Eisentraut <peter@eisentraut.org>
